@@ -1,70 +1,78 @@
-import { Image, StyleSheet, Platform } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { Image, StyleSheet, Platform, View, Text } from "react-native";
+import {
+  CANVAS_HEIGHT,
+  CANVAS_WIDTH,
+  PADDING,
+  SQUARES_AMOUNT_HORIZONTAL,
+  SQUARES_AMOUNT_VERTICAL,
+  SQUARE_CONTAINER_SIZE,
+  SQUARE_SIZE,
+} from "@/constants/ShapeSize";
+import { useSharedValue, withTiming } from "react-native-reanimated";
+import {
+  Canvas,
+  Group,
+  SweepGradient,
+  useTouchHandler,
+  vec,
+} from "@shopify/react-native-skia";
+import RoundedItem from "@/components/RoundedItem";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function HomeScreen() {
+  const touchedPoint = useSharedValue<{ x: number; y: number } | null>(null);
+  const progress = useSharedValue(0);
+  const touchHandler = useTouchHandler({
+    onStart: (event) => {
+      progress.value = withTiming(1, { duration: 300 });
+      touchedPoint.value = { x: event.x, y: event.y };
+    },
+    onActive: (event) => {
+      console.log("event", event);
+      touchedPoint.value = { x: event.x, y: event.y };
+    },
+    onEnd: (event) => {
+      progress.value = withTiming(0, { duration: 300 });
+      touchedPoint.value = null;
+    },
+  });
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <GestureHandlerRootView style={styles.container}>
+      <Canvas
+        style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}
+        onTouch={touchHandler}
+      >
+        <Group>
+          {new Array(SQUARES_AMOUNT_HORIZONTAL).fill(0).map((_, i) => {
+            return new Array(SQUARES_AMOUNT_VERTICAL).fill(0).map((_, j) => {
+              return (
+                <RoundedItem
+                  progress={progress}
+                  point={touchedPoint}
+                  key={`i${i}-j${j}`}
+                  x={i * SQUARE_CONTAINER_SIZE + PADDING / 2}
+                  y={j * SQUARE_CONTAINER_SIZE + PADDING / 2}
+                  width={SQUARE_SIZE}
+                  height={SQUARE_SIZE}
+                />
+              );
+            });
+          })}
+          <SweepGradient
+            c={vec(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2)}
+            colors={["cyan", "magenta", "yellow", "cyan"]}
+          />
+        </Group>
+      </Canvas>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: "black",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
